@@ -1,15 +1,17 @@
 const axios = require('axios');
 const fxparser = require('fast-xml-parser');
+const parser = new fxparser.XMLParser();
+const Pilot = require('../models/pilot');
+const Drone = require('../models/drone');
 
-const externalUrl = 'https://assignments.reaktor.com/birdnest';
-const baseUrl = 'http://localhost:3001/api';
+const baseUrl = 'https://assignments.reaktor.com/birdnest';
+
+const nestCoordinates = {
+  x: 250000,
+  y: 250000,
+};
 
 const calcDistanceFromNest = (x, y) => {
-  const nestCoordinates = {
-    x: 250000,
-    y: 250000,
-  };
-
   // d = sqrt((x2 - x1)^2 + (y2 - y1)^2)
   const distance = Math.sqrt(
     Math.pow(x - nestCoordinates.x, 2) +
@@ -19,13 +21,12 @@ const calcDistanceFromNest = (x, y) => {
   return distance / 1000; // Convert to meters
 };
 
-const getAllDrones = async () => {
-  const request = axios.get(`${externalUrl}/drones`);
-  const data = await request.then((response) => response.data);
+const getDronesFromExternal = async () => {
+  const request = axios.get(`${baseUrl}/drones`);
+  const xmlData = await request.then((response) => response.data);
 
-  const parser = new fxparser.XMLParser();
-  const xmlToJson = parser.parse(data);
-  const droneData = xmlToJson.report.capture.drone;
+  const jsonData = parser.parse(xmlData);
+  const droneData = jsonData.report.capture.drone;
 
   return droneData.map((drone) => {
     return {
@@ -40,43 +41,35 @@ const getAllDrones = async () => {
   });
 };
 
-const addDrone = (drone) => {
-  const request = axios.post(`${baseUrl}/violatingDrones`, drone);
-  return request.then((response) => response.data);
-};
-
-const updateDrone = (drone, id) => {
-  const request = axios.put(
-    `${baseUrl}/violatingDrones/${id}`,
-    drone
-  );
-  return request.then((response) => response.data);
-};
-
-const getPilot = async (serialNumber) => {
-  const request = axios.get(`${externalUrl}/pilots/${serialNumber}`);
+const getPilotFromExternal = async (serialNumber) => {
+  const request = axios.get(`${baseUrl}/pilots/${serialNumber}`);
   const data = await request.then((response) => response.data);
 
+  // Omit createdDt from pilot object
   const { createdDt, ...pilot } = data;
 
   return pilot;
 };
 
-const addPilot = (pilot) => {
-  const request = axios.post(`${baseUrl}/pilots`, pilot);
-  return request.then((response) => response.data);
+const getDronesFromDB = async () => {
+  const query = Drone.find({});
+
+  const drones = await query.then((drones) => drones);
+
+  return drones;
 };
 
-const updatePilot = (pilot, id) => {
-  const request = axios.put(`${baseUrl}/pilots/${id}`, pilot);
-  return request.then((response) => response.data);
+const getPilotsFromDB = async () => {
+  const query = Pilot.find({});
+
+  const pilots = await query.then((pilots) => pilots);
+
+  return pilots;
 };
 
 module.exports = {
-  getAllDrones,
-  addDrone,
-  updateDrone,
-  getPilot,
-  addPilot,
-  updatePilot,
+  getDronesFromExternal,
+  getPilotFromExternal,
+  getDronesFromDB,
+  getPilotsFromDB,
 };

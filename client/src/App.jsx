@@ -1,27 +1,22 @@
 import { useState, useEffect } from 'react';
-import guardbird from './services/guardbird';
 
 import PilotList from './components/PilotList';
 
+const socket = new WebSocket('ws://localhost:3001');
+
 const App = () => {
-  const [drones, setDrones] = useState([]);
+  const [pilots, setPilots] = useState([]);
 
-  const getAllDrones = () => {
-    guardbird
-      .getDrones()
-      .then((drones) => {
-        setDrones(drones);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  };
-
-  useEffect(getAllDrones, []);
+  useEffect(() => {
+    socket.onmessage = (message) => {
+      setPilots(JSON.parse(message.data));
+    };
+  }, [socket]);
 
   return (
-    <div className="App">
-      <PilotList drones={drones}></PilotList>
+    <div className='app'>
+      <h1>Violating Pilots</h1>
+      <PilotList className='pilot-list' pilots={pilots}></PilotList>
     </div>
   );
 };

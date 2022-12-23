@@ -1,12 +1,12 @@
-const Pilot = ({ pilot }) => {
+const Pilot = ({ pilot, className }) => {
   return (
-    <tr>
-      <td>{`${pilot.firstName} ${pilot.lastName}`}</td>
-      <td>{pilot.email}</td>
-      <td>{pilot.phoneNumber}</td>
-      <td>{pilot.closestDistance} m</td>
-      <td>{pilot.lastViolated}</td>
-    </tr>
+    <div className={className}>
+      <div>{`${pilot.firstName} ${pilot.lastName}`}</div>
+      <div>{pilot.email}</div>
+      <div>{pilot.phoneNumber}</div>
+      <div>{pilot.closestDistance} m</div>
+      <div>{pilot.lastViolated}</div>
+    </div>
   );
 };
 
