@@ -3,14 +3,14 @@ const Pilot = require('../models/pilot');
 
 const guardbird = require('./guardbird');
 const logger = require('../utils/logger');
-const { all } = require('axios');
 
 const isExpired = (drone) => {
+  // Check if drone made its last violation 10 or more minutes ago
   return new Date() - drone.lastViolated >= 10 * 60 * 1000;
 };
 
-// Get all drones from Reaktor API
 const populateDB = async () => {
+  // Get all drones from Reaktor API
   const drones = await guardbird.getDronesFromExternal();
 
   // Filter out violating drones
@@ -20,7 +20,7 @@ const populateDB = async () => {
 
   // For each violating drone:
   violatingDrones.forEach(async (drone) => {
-    // Grab their distance and reassign lastViolated
+    // Get drone's distance from the nest and assign last violation to now
     const distance = drone.distanceFromNest;
     const lastViolated = new Date();
     let closestDistance;
@@ -34,47 +34,43 @@ const populateDB = async () => {
           return;
         }
 
-        // If not found
-        if (!foundDrone) {
-          closestDistance = distance;
+        // If found
+        if (foundDrone) {
+          // Reassign closestDistance if new distance is smaller
+          closestDistance =
+            distance < foundDrone.closestDistance
+              ? distance
+              : foundDrone.closestDistance;
 
-          // Create new drone with new values
-          const newDrone = new Drone({
-            ...drone,
-            lastViolated,
-            closestDistance,
-          });
-
-          // Add drone to database
-          newDrone
-            .save()
-            .then((savedDrone) => {
-              logger.info('Added drone', savedDrone);
+          // Update database
+          Drone.findByIdAndUpdate(
+            foundDrone.id,
+            { lastViolated, closestDistance },
+            { new: true }
+          )
+            .then((updatedDrone) => {
+              logger.info('Updated drone', updatedDrone);
             })
             .catch((error) => logger.error(error));
 
           return;
         }
 
-        // Reassign closestDistance if new distance is smaller
-        closestDistance =
-          distance < foundDrone.closestDistance
-            ? distance
-            : foundDrone.closestDistance;
+        // Else assign closestDistance to be current distance
+        closestDistance = distance;
 
-        // Create new drone object with updated fields
-        const updatedDrone = {
-          ...foundDrone,
+        // Create new drone
+        const newDrone = new Drone({
+          ...drone,
           lastViolated,
           closestDistance,
-        };
+        });
 
-        // Update database
-        Drone.findByIdAndUpdate(foundDrone.id, updatedDrone, {
-          new: true,
-        })
-          .then((updatedDrone) => {
-            logger.info('Updated drone', updatedDrone);
+        // Add drone to database
+        newDrone
+          .save()
+          .then((savedDrone) => {
+            logger.info('Added drone', savedDrone);
           })
           .catch((error) => logger.error(error));
       }
@@ -104,10 +100,11 @@ const populateDB = async () => {
             logger.info('Updated pilot', updatedPilot);
           })
           .catch((error) => logger.error(error));
+
         return;
       }
 
-      // Else create new pilot with new values
+      // Else create new pilot
       const newPilot = new Pilot({
         ...pilot,
         lastViolated,
@@ -124,8 +121,10 @@ const populateDB = async () => {
     });
   });
 
+  // Get all drones from database
   const allDrones = await guardbird.getDronesFromDB();
 
+  // Loop through and remove drones from db if expired
   allDrones.forEach((drone) => {
     if (isExpired(drone)) {
       Drone.findOneAndDelete({
@@ -136,8 +135,10 @@ const populateDB = async () => {
     }
   });
 
+  // Get all pilots from database
   const allPilots = await guardbird.getPilotsFromDB();
 
+  // Loop through and remove pilots from db if expired
   allPilots.forEach((pilot) => {
     if (isExpired(pilot)) {
       Pilot.findOneAndDelete({

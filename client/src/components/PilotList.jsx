@@ -4,7 +4,7 @@ const PilotList = ({ pilots, className }) => {
   const formattedPilots = pilots.map((pilot) => {
     return {
       ...pilot,
-      closestDistance: Math.floor(pilot.closestDistance),
+      closestDistance: pilot.closestDistance.toFixed(1),
       lastViolated: new Date(pilot.lastViolated).toLocaleString(
         'en-gb'
       ),

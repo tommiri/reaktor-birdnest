@@ -15,7 +15,7 @@ const App = () => {
 
   return (
     <div className='app'>
-      <h1>Violating Pilots</h1>
+      <h1>Pilots violating NDZ</h1>
       <PilotList className='pilot-list' pilots={pilots}></PilotList>
     </div>
   );
