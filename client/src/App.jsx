@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 
 import PilotList from './components/PilotList';
 
-const socket = new WebSocket('ws://localhost:3001');
+const HOST = location.origin.replace(/^http/, 'ws');
+
+// Establish a new socket connection
+const socket = new WebSocket(HOST);
 
 const App = () => {
   const [pilots, setPilots] = useState([]);
 
+  // Get pilots from server
   useEffect(() => {
     socket.onmessage = (message) => {
       setPilots(JSON.parse(message.data));
@@ -14,9 +18,9 @@ const App = () => {
   }, [socket]);
 
   return (
-    <div className='app'>
+    <div className="app">
       <h1>Pilots violating NDZ</h1>
-      <PilotList className='pilot-list' pilots={pilots}></PilotList>
+      <PilotList className="pilot-list" pilots={pilots}></PilotList>
     </div>
   );
 };

@@ -7,10 +7,11 @@ const logger = require('./utils/logger');
 
 const app = express();
 app.use(cors());
-app.use(express.static('build'));
+app.use(express.static('dist'));
 
-logger.info('connecting to', config.MONGODB_URI);
+logger.info('Connecting to', config.MONGODB_URI);
 
+// Connecting to MongoDB database
 mongoose
   .connect(config.MONGODB_URI)
   .then(() => {

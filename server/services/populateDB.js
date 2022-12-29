@@ -1,7 +1,7 @@
 const Drone = require('../models/drone');
 const Pilot = require('../models/pilot');
 
-const guardbird = require('./guardbird');
+const guardbird = require('./guardbird.js');
 const logger = require('../utils/logger');
 
 const isExpired = (drone) => {
@@ -13,6 +13,11 @@ const populateDB = async () => {
   // Get all drones from Reaktor API
   const drones = await guardbird.getDronesFromExternal();
 
+  if (!drones) {
+    // Error logging is handled in guardbird so just return here
+    return;
+  }
+
   // Filter out violating drones
   const violatingDrones = drones.filter((drone) => {
     return drone.distanceFromNest < 100;
@@ -20,7 +25,7 @@ const populateDB = async () => {
 
   // For each violating drone:
   violatingDrones.forEach(async (drone) => {
-    // Get drone's distance from the nest and assign last violation to now
+    // Get drone's distance from the nest and assign last violation to current time
     const distance = drone.distanceFromNest;
     const lastViolated = new Date();
     let closestDistance;
@@ -42,7 +47,7 @@ const populateDB = async () => {
               ? distance
               : foundDrone.closestDistance;
 
-          // Update database
+          // Update drone to DB
           Drone.findByIdAndUpdate(
             foundDrone.id,
             { lastViolated, closestDistance },
@@ -66,7 +71,7 @@ const populateDB = async () => {
           closestDistance,
         });
 
-        // Add drone to database
+        // Add drone to DB
         newDrone
           .save()
           .then((savedDrone) => {
@@ -77,7 +82,7 @@ const populateDB = async () => {
     );
 
     // Get pilot with serial number
-    const pilot = await guardbird.getPilotFromExternal(
+    let pilot = await guardbird.getPilotFromExternal(
       drone.serialNumber
     );
 
@@ -90,7 +95,7 @@ const populateDB = async () => {
 
       // If found
       if (foundPilot) {
-        // Update pilot to the DB
+        // Update pilot to DB
         Pilot.findByIdAndUpdate(
           foundPilot.id,
           { closestDistance, lastViolated },
@@ -111,7 +116,7 @@ const populateDB = async () => {
         closestDistance,
       });
 
-      // Add pilot to the DB
+      // Add pilot to DB
       newPilot
         .save()
         .then((savedPilot) => {
@@ -130,7 +135,7 @@ const populateDB = async () => {
       Drone.findOneAndDelete({
         serialNumber: drone.serialNumber,
       }).then((deletedDrone) => {
-        console.log(`Deleted drone @ ${new Date()}`, deletedDrone);
+        logger.info('Deleted drone', deletedDrone);
       });
     }
   });
@@ -142,9 +147,9 @@ const populateDB = async () => {
   allPilots.forEach((pilot) => {
     if (isExpired(pilot)) {
       Pilot.findOneAndDelete({
-        serialNumber: pilot.serialNumber,
+        pilotId: pilot.pilotId,
       }).then((deletedPilot) => {
-        console.log(`Deleted pilot @ ${new Date()}`, deletedPilot);
+        logger.info('Deleted pilot', deletedPilot);
       });
     }
   });

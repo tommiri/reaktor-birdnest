@@ -1,3 +1,4 @@
+// Logging confined to it's own module for future expandability
 const info = (...params) => {
   console.log(...params);
 };
