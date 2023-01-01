@@ -1,6 +1,6 @@
 import Pilot from './Pilot';
 
-const PilotList = ({ pilots, className }) => {
+const PilotList = ({ pilots }) => {
   const formattedPilots = pilots.map((pilot) => {
     return {
       ...pilot,
@@ -13,23 +13,21 @@ const PilotList = ({ pilots, className }) => {
   });
 
   return (
-    <div className={className}>
-      <div className='list-item list-header'>
+    <article className="pilot-list">
+      <header className="list-header">
         <div>Name</div>
         <div>Email</div>
         <div>Phone</div>
         <div>Closest distance</div>
         <div>Last violated</div>
-      </div>
+      </header>
 
-      <div className='list-body'>
+      <section className="list-body">
         {formattedPilots.map((pilot, i) => {
-          return (
-            <Pilot className='list-item' key={i} pilot={pilot} />
-          );
+          return <Pilot key={i} pilot={pilot} />;
         })}
-      </div>
-    </div>
+      </section>
+    </article>
   );
 };
 

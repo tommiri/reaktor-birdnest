@@ -1,6 +1,6 @@
-const Pilot = ({ pilot, className }) => {
+const Pilot = ({ pilot }) => {
   return (
-    <div className={className}>
+    <div className="list-item">
       <div>{`${pilot.firstName} ${pilot.lastName}`}</div>
       <a href={`mailto:${pilot.email}`}>{pilot.email}</a>
       <a href={`tel:${pilot.phoneNumber}`}>{pilot.phoneNumber}</a>

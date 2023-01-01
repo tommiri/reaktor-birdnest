@@ -20,7 +20,7 @@ const App = () => {
   return (
     <div className="app">
       <h1>Pilots violating NDZ</h1>
-      <PilotList className="pilot-list" pilots={pilots}></PilotList>
+      <PilotList pilots={pilots}></PilotList>
     </div>
   );
 };
