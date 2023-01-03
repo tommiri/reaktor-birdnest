@@ -6,6 +6,7 @@ const droneSchema = new mongoose.Schema({
   positionY: { type: Number, required: true },
   closestDistance: { type: Number, required: true },
   lastViolated: { type: Date, required: true },
+  pilot: { type: Object, required: true },
 });
 
 droneSchema.set('toJSON', {

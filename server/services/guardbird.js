@@ -2,7 +2,6 @@ const fetch = require('node-fetch');
 const fxparser = require('fast-xml-parser');
 const parser = new fxparser.XMLParser();
 
-const Pilot = require('../models/pilot');
 const Drone = require('../models/drone');
 const logger = require('../utils/logger');
 
@@ -14,49 +13,17 @@ const nestCoordinates = {
   y: 250000,
 };
 
-const calcDistanceFromNest = (x, y) => {
+const calcDistanceFromNest = (drone) => {
   // d = sqrt((x2 - x1)^2 + (y2 - y1)^2)
   const distance = Math.sqrt(
-    Math.pow(x - nestCoordinates.x, 2) +
-      Math.pow(y - nestCoordinates.y, 2)
+    Math.pow(drone.positionX - nestCoordinates.x, 2) +
+      Math.pow(drone.positionY - nestCoordinates.y, 2)
   );
 
   return distance / 1000; // Convert to meters
 };
 
-const getDronesFromExternal = async () => {
-  try {
-    // Get drones from reaktor API
-    const res = await fetch(`${baseUrl}/drones`);
-    if (!res.ok) {
-      // If response status not in range 200-299
-      throw new Error(`${res.status} ${res.statusText}`);
-    }
-    const xmlData = await res.text();
-    // Parse XML data to JSON format
-    const jsonData = parser.parse(xmlData);
-    const droneData = jsonData.report.capture.drone;
-
-    // Return drones in formatted form, omitting unused fields
-    return droneData.map((drone) => {
-      return {
-        serialNumber: drone.serialNumber,
-        positionX: drone.positionX,
-        positionY: drone.positionY,
-        distanceFromNest: calcDistanceFromNest(
-          drone.positionX,
-          drone.positionY
-        ),
-      };
-    });
-  } catch (err) {
-    // In case of error just log it and return
-    logger.error(err);
-    return;
-  }
-};
-
-const getPilotFromExternal = async (serialNumber) => {
+const getPilot = async (serialNumber) => {
   try {
     // Get pilot from Reaktor API
     const res = await fetch(`${baseUrl}/pilots/${serialNumber}`);
@@ -85,6 +52,45 @@ const getPilotFromExternal = async (serialNumber) => {
   }
 };
 
+const getDronesFromExternal = async () => {
+  try {
+    // Get drones from reaktor API
+    const res = await fetch(`${baseUrl}/drones`);
+    if (!res.ok) {
+      // If response status not in range 200-299
+      throw new Error(`${res.status} ${res.statusText}`);
+    }
+    const xmlData = await res.text();
+    // Parse XML data to JSON format
+    const jsonData = parser.parse(xmlData);
+    const droneData = jsonData.report.capture.drone;
+
+    // Get drones that are within 100m of the birdnest
+    const violatingDrones = droneData.filter(
+      (drone) => calcDistanceFromNest(drone) < 100
+    );
+
+    // Wait for all promises to resolve before returning
+    return await Promise.all(
+      violatingDrones.map(async (drone) => {
+        return {
+          // Format drones, omitting unused fields
+          serialNumber: drone.serialNumber,
+          positionX: drone.positionX,
+          positionY: drone.positionY,
+          distanceFromNest: calcDistanceFromNest(drone),
+          // Only get pilots for violating drones
+          pilot: await getPilot(drone.serialNumber),
+        };
+      })
+    );
+  } catch (err) {
+    // In case of error just log it and return
+    logger.error(err);
+    return;
+  }
+};
+
 // Get all drones from DB
 const getDronesFromDB = async () => {
   const query = Drone.find({});
@@ -93,17 +99,7 @@ const getDronesFromDB = async () => {
   return drones;
 };
 
-// Get all pilots from DB
-const getPilotsFromDB = async () => {
-  const query = Pilot.find({});
-  const pilots = await query.then((pilots) => pilots);
-
-  return pilots;
-};
-
 module.exports = {
   getDronesFromExternal,
-  getPilotFromExternal,
   getDronesFromDB,
-  getPilotsFromDB,
 };

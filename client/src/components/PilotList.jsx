@@ -1,12 +1,12 @@
 import Pilot from './Pilot';
 
-const PilotList = ({ pilots }) => {
-  const formattedPilots = pilots.map((pilot) => {
+const PilotList = ({ drones }) => {
+  const pilots = drones.map((drone) => {
     return {
-      ...pilot,
+      ...drone.pilot,
       // Formatting distance and time to more readable formats
-      closestDistance: pilot.closestDistance.toFixed(1),
-      lastViolated: new Date(pilot.lastViolated).toLocaleString(
+      closestDistance: drone.closestDistance.toFixed(1),
+      lastViolated: new Date(drone.lastViolated).toLocaleString(
         'en-gb'
       ),
     };
@@ -23,7 +23,7 @@ const PilotList = ({ pilots }) => {
       </header>
 
       <section className="list-body">
-        {formattedPilots.map((pilot, i) => {
+        {pilots.map((pilot, i) => {
           return <Pilot key={i} pilot={pilot} />;
         })}
       </section>
